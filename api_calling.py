@@ -4,6 +4,7 @@ import os
 from gtts import gTTS
 import streamlit as st 
 import io
+from google.genai import types
 
 load_dotenv()
 
@@ -104,9 +105,23 @@ The quiz should help students test their understanding and prepare for exams eff
 
   """
   
+    parts = []
+
+    for img in images:
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")  
+        parts.append(
+            types.Part.from_bytes(
+                data=buffer.getvalue(),
+                mime_type="image/png"
+            )
+        )
+
+    parts.append(prompt)
+
     response = client.models.generate_content(
-      model = "gemini-3-flash-preview",
-      contents=[images,prompt]
+        model="gemini-3-flash-preview",
+        contents=parts
     )
-    
-    return response.text 
+
+    return response.text
