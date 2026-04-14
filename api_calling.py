@@ -2,7 +2,6 @@ from google import genai
 from dotenv import load_dotenv
 import os
 from gtts import gTTS
-import streamlit as st
 import io
 from google.genai import types
 from PIL import Image
@@ -13,7 +12,6 @@ client = genai.Client(api_key=api_key)
 
 
 def pil_to_part(img: Image.Image) -> types.Part:
-    
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     return types.Part.from_bytes(
@@ -32,41 +30,35 @@ def note_generator(images: list) -> str:
         - No emojis
         - Formal, academic, and professional tone
         - Easy to read, clear, and suitable for students
-        - Use simple and understandable language
-        - Avoid unnecessary complexity
         Structure (Strictly follow this format):
         1. শিরোনাম (Topic Title)
         2. সংজ্ঞা (Definition)
         3. বিস্তারিত ব্যাখ্যা (Detailed Explanation)
         4. উদাহরণ (Example)
         5. গুরুত্বপূর্ণ পয়েন্ট (Key Points / Summary)
-        Additional Instructions:
-        - Organize the content in bullet points where necessary
-        - Highlight important terms or keywords
-        - If multiple concepts are present, separate them clearly
-        - Maintain logical flow and clarity
-        - Make the note suitable for exam preparation and quick revision
-        - Ensure the explanation is neither too short nor unnecessarily long
-        Goal:
-        The note should help a student easily understand, remember, and revise the topic effectively.
     """
 
-    # PIL images → Parts
-    parts = [pil_to_part(img) for img in images]
-    parts.append(prompt)
+    try:
+        parts = [pil_to_part(img) for img in images]
+        parts.append(prompt)
 
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview", 
-        contents=parts
-    )
-    return response.text
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=parts
+        )
+        return response.text
+
+    except Exception as e:
+        # Full error Streamlit logs-এ দেখাবে
+        print(f"NOTE GENERATOR ERROR: {type(e).__name__}: {e}")
+        raise e
 
 
 def audio_transcription(text: str) -> io.BytesIO:
     speech = gTTS(text=text, lang='bn', slow=False)
     audio_buffer = io.BytesIO()
     speech.write_to_fp(audio_buffer)
-    audio_buffer.seek(0) 
+    audio_buffer.seek(0)
     return audio_buffer
 
 
@@ -75,36 +67,28 @@ def quiz_generator(images: list, difficulty: str) -> str:
         Analyze the provided images and generate a quiz based on the content.
         Language Requirement:
         - The final output MUST be written entirely in Bangla (বাংলা)
-        - Do NOT use English in the final answer unless absolutely necessary (e.g., technical terms)
+        - Do NOT use English in the final answer unless absolutely necessary
         Quiz Style:
         - Formal and educational tone
-        - Suitable for students and exam preparation
-        - Clear and simple language
-        - No emojis
         - Difficulty: {difficulty}
+        - No emojis
         Quiz Structure:
         - Create multiple-choice questions (MCQ)
-        - Each question must have 4 options by points (A, B, C, D), each option on a new line
+        - Each question must have 4 options (A, B, C, D), each on a new line
         - Clearly indicate the correct answer after each question
-        Difficulty Level:
-        - Follow the selected difficulty level (Easy / Medium / Hard)
-        - Adjust question depth accordingly
-        Additional Instructions:
-        - Cover all important concepts from the images
-        - Do not repeat questions
-        - Ensure questions test understanding, not just memorization
-        - Keep questions clear and unambiguous
-        - Provide answer explanation in 1–2 lines if needed
-        Goal:
-        The quiz should help students test their understanding and prepare for exams effectively.
+        - Provide 1-2 line explanation per answer
     """
 
-    # PIL images → Parts
-    parts = [pil_to_part(img) for img in images]
-    parts.append(prompt)
+    try:
+        parts = [pil_to_part(img) for img in images]
+        parts.append(prompt)
 
-    response = client.models.generate_content(
-        model="gemini-3-flash-preview",  
-        contents=parts             
-    )
-    return response.text
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=parts
+        )
+        return response.text
+
+    except Exception as e:
+        print(f"QUIZ GENERATOR ERROR: {type(e).__name__}: {e}")
+        raise e
